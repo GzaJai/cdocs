@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1f2937; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #2563eb;
+    --get: #0f766e; --get-bg: #ccfbf1;
+    --post: #1d4ed8; --post-bg: #dbeafe;
+    --put: #b45309; --put-bg: #fef3c7;
+    --patch: #7e22ce; --patch-bg: #f3e8ff;
+    --delete: #b91c1c; --delete-bg: #fee2e2;
+    --code-bg: #0f172a; --code-ink: #e2e8f0;
+  }
+  html.dark {
+    --bg: #0b1220; --panel: #111a2b; --ink: #e5e7eb; --muted: #94a3b8;
+    --line: #1f2a3d; --accent: #60a5fa; --code-bg: #050a14; --code-ink: #dbe4f0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.5; }
+  header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px;
+           padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .base { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+                 color: var(--muted); background: var(--bg); border: 1px solid var(--line);
+                 padding: 3px 8px; border-radius: 6px; }
+  header .spacer { flex: 1; }
+  header button { border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+                  padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  header button:hover { border-color: var(--accent); color: var(--accent); }
+  .layout { display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 53px); }
+  aside { border-right: 1px solid var(--line); background: var(--panel); padding: 12px;
+          position: sticky; top: 53px; height: calc(100vh - 53px); overflow-y: auto; }
+  aside input { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+                background: var(--bg); color: var(--ink); font-size: 13px; margin-bottom: 12px; }
+  aside input:focus { outline: none; border-color: var(--accent); }
+  .nav-group { margin-bottom: 8px; }
+  .nav-group > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+                         padding: 6px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+                         color: var(--muted); font-weight: 600; border-radius: 6px; }
+  .nav-group > summary::-webkit-details-marker { display: none; }
+  .nav-group > summary:hover { background: var(--bg); }
+  .nav-group .caret { font-size: 10px; transition: transform .15s; }
+  .nav-group[open] .caret { transform: rotate(90deg); }
+  .nav-group .count { margin-left: auto; font-size: 10px; background: var(--bg);
+                      border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+  .nav-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px;
+              border: 0; background: transparent; color: var(--ink); border-radius: 7px;
+              cursor: pointer; text-align: left; font-size: 12.5px; }
+  .nav-item:hover { background: var(--bg); }
+  .nav-item.active { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); }
+  .nav-item code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .method { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px;
+            font-weight: 700; padding: 2px 6px; border-radius: 5px; flex: 0 0 auto; }
+  .m-GET { color: var(--get); background: var(--get-bg); }
+  .m-POST { color: var(--post); background: var(--post-bg); }
+  .m-PUT { color: var(--put); background: var(--put-bg); }
+  .m-PATCH { color: var(--patch); background: var(--patch-bg); }
+  .m-DELETE { color: var(--delete); background: var(--delete-bg); }
+  .m-DOC { color: var(--accent); background: var(--bg); }
+  .m-MOD { color: #0e7490; background: #cffafe; }
+  main { padding: 26px 32px 60px; max-width: 1000px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+          margin-bottom: 18px; overflow: hidden; }
+  .card > .head { display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+                  border-bottom: 1px solid var(--line); }
+  .card > .head code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 600; }
+  .card > .body { padding: 16px 18px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line);
+           color: var(--muted); background: var(--bg); margin-left: auto; }
+  h2 { font-size: 22px; margin: 0 0 6px; }
+  h3.sec { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+           margin: 22px 0 8px; }
+  .desc { color: var(--ink); font-size: 14px; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  td code, th code, .desc code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                                 background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .in { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .req { color: var(--delete); font-size: 11px; font-weight: 600; }
+  .opt { color: var(--muted); font-size: 11px; }
+  .code-wrap { position: relative; margin: 8px 0 0; }
+  .code-wrap pre { margin: 0; background: var(--code-bg); color: var(--code-ink);
+                   padding: 14px 16px; border-radius: 10px; overflow-x: auto;
+                   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .copy { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 4px 8px;
+          border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; cursor: pointer; }
+  .copy:hover { background: #334155; }
+  .resp { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .resp > summary { cursor: pointer; list-style: none; padding: 10px 14px; display: flex;
+                    align-items: center; gap: 10px; font-size: 13px; }
+  .resp > summary::-webkit-details-marker { display: none; }
+  .resp > summary:hover { background: var(--bg); }
+  .status { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700;
+            font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--bg);
+            border: 1px solid var(--line); }
+  .s2 { color: var(--get); border-color: var(--get); }
+  .s4 { color: var(--put); border-color: var(--put); }
+  .s5 { color: var(--delete); border-color: var(--delete); }
+  .resp > .body { padding: 0 14px 14px; }
+  .note { border-left: 3px solid var(--accent); background: var(--bg); padding: 10px 12px;
+          border-radius: 0 8px 8px 0; font-size: 13px; margin: 10px 0; }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+          border: 1px solid var(--line); color: var(--muted); margin: 0 6px 6px 0; }
+  .group-card { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .group-card .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .roles-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .role-chip { border: 1px solid var(--line); background: var(--bg); color: var(--muted);
+               padding: 3px 9px; border-radius: 999px; cursor: pointer; font-size: 11px; }
+  .role-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .role-chip.active { border-color: var(--accent); color: var(--accent); background: var(--panel); font-weight: 600; }
+  .role-chip .n { opacity: .65; margin-left: 5px; }
+  .chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+          padding: 4px 8px; border-radius: 7px; cursor: pointer; font-size: 12px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="doc-title">__TITLE__</h1>
+  <span class="base" id="doc-base">__BASE_URL__</span>
+  <span class="spacer"></span>
+  <button id="theme">Modo oscuro</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="roles-bar" id="roles"></div>
+    <input id="search" type="search" placeholder="Buscar endpoint… (ej: cupon, afiliados, 409)" autocomplete="off">
+    <div id="nav"></div>
+  </aside>
+  <main id="content"></main>
+</div>
+
+<script>
+const DATA = __API_DATA__;
+
+/* ---------- helpers ---------- */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+const pretty = (v) => v == null ? "" : JSON.stringify(v, null, 2);
+const COLORS = ["#2563eb", "#0f766e", "#b45309", "#7e22ce", "#b91c1c", "#0e7490", "#4d7c0f", "#9d174d"];
+
+const ALL = [];
+DATA.groups.forEach((g, gi) => g.endpoints.forEach((e, ei) => {
+  e.id = "ep-" + gi + "-" + ei;
+  e.group = g.name;
+  e.groupIndex = gi;
+  e._search = (e.method + " " + e.path + " " + e.title + " " + e.desc + " "
+    + JSON.stringify(e.params || []) + " " + JSON.stringify(e.body || null) + " "
+    + JSON.stringify(e.responses || [])).toLowerCase();
+  ALL.push(e);
+}));
+
+/* ---------- visibilidad ---------- */
+const isPublic = (e) => e.access === "public";
+const isAuthenticated = (e) => e.access === "authenticated";
+const rolesOf = (e) => (Array.isArray(e.access) ? e.access : []);
+const accessLabel = (e) => isPublic(e) ? "Público" : isAuthenticated(e) ? "Autenticado" : rolesOf(e).join(" · ");
+const allRoles = () => {
+  const s = new Set();
+  ALL.forEach((e) => rolesOf(e).forEach((r) => s.add(r)));
+  return [...s].sort();
+};
+const state = { q: "", role: "all" };
+
+function matchesText(e, q) {
+  const f = (q || "").trim().toLowerCase();
+  if (!f) return true;
+  return e._search.includes(f);
+}
+
+function matchesRole(e, role) {
+  if (role === "all") return true;
+  if (role === "public") return isPublic(e);
+  if (role === "authenticated") return isAuthenticated(e);
+  return rolesOf(e).includes(role);
+}
+
+function roleCounts(base) {
+  const c = { all: base.length, public: 0, authenticated: 0 };
+  allRoles().forEach((r) => (c[r] = 0));
+  base.forEach((e) => {
+    if (isPublic(e)) c.public++;
+    else if (isAuthenticated(e)) c.authenticated++;
+    else rolesOf(e).forEach((r) => (c[r] = (c[r] || 0) + 1));
+  });
+  return c;
+}
+
+function roleChips(base) {
+  const c = roleCounts(base);
+  const chip = (role, label) =>
+    `<button class="role-chip ${state.role === role ? "active" : ""}" data-role="${role}">${esc(label)}<span class="n">${c[role] || 0}</span></button>`;
+  let html = chip("all", "Todos") + chip("public", "Público") + chip("authenticated", "Autenticado");
+  allRoles().forEach((r) => (html += chip(r, r)));
+  return html;
+}
+
+function bindRoleChips(container) {
+  container.querySelectorAll("[data-role]").forEach((b) => {
+    b.onclick = () => {
+      state.role = b.dataset.role;
+      renderRoles();
+      renderNav();
+    };
+  });
+}
+
+function renderRoles() {
+  const base = ALL.filter((e) => matchesText(e, state.q));
+  const el = $("#roles");
+  el.innerHTML = roleChips(base);
+  bindRoleChips(el);
+}
+
+/* ---------- nav ---------- */
+function renderNav() {
+  let html = `<div class="nav-group" style="margin-bottom:12px">
+    <button class="nav-item" data-view="overview"><span class="method m-DOC">DOC</span><code>Resumen y convenciones</code></button>
+    <button class="nav-item" data-view="models"><span class="method m-MOD">MOD</span><code>Modelos</code></button>
+  </div>`;
+
+  let total = 0;
+  DATA.groups.forEach((g, gi) => {
+    const eps = g.endpoints.filter((e) => matchesText(e, state.q) && matchesRole(e, state.role));
+    if (!eps.length) return;
+    total += eps.length;
+    html += `<details class="nav-group" open>
+      <summary><span class="caret">▶</span><span class="dot" style="background:${COLORS[gi % COLORS.length]}"></span>${esc(g.name)}<span class="count">${eps.length}</span></summary>`;
+    eps.forEach((e) => {
+      html += `<button class="nav-item" data-ep="${e.id}"><span class="method m-${e.method}">${e.method}</span><code>${esc(e.path)}</code></button>`;
+    });
+    html += `</details>`;
+  });
+
+  if (!total) html += `<p class="desc muted" style="padding:8px 4px">Sin endpoints para este filtro.</p>`;
+
+  $("#nav").innerHTML = html;
+  $("#nav").querySelectorAll("[data-ep]").forEach((b) => { b.onclick = () => showEndpoint(b.dataset.ep, b); });
+  $("#nav").querySelectorAll("[data-view]").forEach((b) => {
+    b.onclick = () => b.dataset.view === "overview" ? showOverview(b) : showModels(b);
+  });
+}
+
+function markActive(btn) {
+  document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+}
+
+/* ---------- blocks ---------- */
+function codeBlock(value) {
+  if (value == null) return "";
+  const id = "c" + Math.random().toString(36).slice(2);
+  return `<div class="code-wrap">
+    <button class="copy" data-copy="${id}">Copiar</button>
+    <pre id="${id}">${esc(pretty(value))}</pre>
+  </div>`;
+}
+
+function bindCopy() {
+  document.querySelectorAll(".copy").forEach((b) => {
+    b.onclick = async () => {
+      const el = document.getElementById(b.dataset.copy);
+      if (!el) return;
+      try {
+        await navigator.clipboard.writeText(el.textContent);
+        const old = b.textContent; b.textContent = "Copiado";
+        setTimeout(() => (b.textContent = old), 1200);
+      } catch (e) {}
+    };
+  });
+}
+
+const statusClass = (s) => s.startsWith("2") ? "s2" : s.startsWith("4") ? "s4" : "s5";
+
+/* ---------- vistas ---------- */
+function showOverview(btn) {
+  markActive(btn);
+  const groupsHtml = DATA.groups.map((g, gi) => `
+    <div class="group-card">
+      <span class="dot" style="background:${COLORS[gi % COLORS.length]}"></span>
+      <strong style="font-size:13px;white-space:nowrap">${esc(g.name)}</strong>
+      <span class="muted" style="font-size:11px">${g.endpoints.length}</span>
+      <div class="chips">
+        ${g.endpoints.map((e) => `<button class="chip" data-ep="${e.id}">${e.method} ${esc(e.path)}</button>`).join("")}
+      </div>
+    </div>`).join("");
+
+  $("#content").innerHTML = `
+    <h2>${esc(DATA.meta.title)}</h2>
+    <p class="desc">${esc(DATA.meta.subtitle || "")} · Base: <code>${esc(DATA.meta.baseUrl)}</code></p>
+    ${DATA.authNote ? `<div class="note"><strong>Autenticación:</strong> ${esc(DATA.authNote)}</div>` : ""}
+
+    <h3 class="sec">Grupos</h3>
+    <div class="card"><div class="body">${groupsHtml}</div></div>
+
+    <h3 class="sec">Visibilidad</h3>
+    <div class="card"><div class="body">
+      <div class="roles-bar" id="overview-roles">${roleChips(ALL)}</div>
+      <p class="desc muted" style="margin-top:6px">Clic en un rol para filtrar el menú lateral. «Público» son los endpoints sin autenticación.</p>
+    </div></div>
+
+    ${(DATA.conventions || []).length ? `
+      <h3 class="sec">Convenciones</h3>
+      <div class="card"><div class="body"><table>
+        ${DATA.conventions.map((c) => `<tr><th style="width:140px">${esc(c.name)}</th><td>${esc(c.value)}</td></tr>`).join("")}
+      </table></div></div>` : ""}
+
+    ${(DATA.changes || []).length ? `
+      <h3 class="sec">Cambios de comportamiento</h3>
+      <div class="card"><div class="body"><ul style="margin:0;padding-left:18px;font-size:13.5px">
+        ${DATA.changes.map((c) => `<li>${esc(c)}</li>`).join("")}
+      </ul></div></div>` : ""}
+
+    ${(DATA.enums || []).length ? `
+      <h3 class="sec">Enums</h3>
+      <div class="card"><div class="body">
+        ${DATA.enums.map((e) => `<div style="margin-bottom:8px"><code>${esc(e.name)}</code><br>${e.values.map((v) => `<span class="pill">${esc(v)}</span>`).join("")}</div>`).join("")}
+      </div></div>` : ""}
+
+    ${(DATA.errors || []).length ? `
+      <h3 class="sec">Catálogo de errores</h3>
+      <div class="card"><div class="body">
+        ${DATA.errors.map((e) => `<details class="resp"><summary><span class="status ${statusClass(e.code)}">${esc(e.code)}</span>${esc(e.desc)}</summary><div class="body">${codeBlock(e.json)}</div></details>`).join("")}
+      </div></div>` : ""}
+  `;
+  bindCopy();
+  $("#content").querySelectorAll("[data-ep]").forEach((b) => { b.onclick = () => showEndpoint(b.dataset.ep, null); });
+  bindRoleChips($("#overview-roles"));
+}
+
+function showModels(btn) {
+  markActive(btn);
+  $("#content").innerHTML = `
+    <h2>Modelos</h2>
+    <p class="desc">Schemas compartidos por los endpoints.</p>
+    ${(DATA.models || []).map((m) => `
+      <div class="card">
+        <div class="head"><code>${esc(m.name)}</code></div>
+        <div class="body">
+          <p class="desc muted">${esc(m.desc || "")}</p>
+          ${codeBlock(m.json)}
+        </div>
+      </div>`).join("")}
+  `;
+  bindCopy();
+}
+
+function showEndpoint(id, btn) {
+  const e = ALL.find((x) => x.id === id);
+  if (!e) return;
+  markActive(btn);
+
+  const params = e.params || [];
+  const paramsTable = params.length ? `
+    <h3 class="sec">Parámetros</h3>
+    <div class="card"><div class="body"><table>
+      <thead><tr><th>In</th><th>Nombre</th><th>Tipo</th><th>Req.</th><th>Descripción</th></tr></thead>
+      <tbody>${params.map((p) => `<tr>
+        <td class="in">${esc(p.in)}</td>
+        <td><code>${esc(p.name)}</code></td>
+        <td class="muted">${esc(p.type)}</td>
+        <td>${p.required ? '<span class="req">sí</span>' : '<span class="opt">opcional</span>'}</td>
+        <td>${esc(p.desc || "")}</td>
+      </tr>`).join("")}</tbody>
+    </table></div></div>` : `<p class="desc muted">Sin parámetros.</p>`;
+
+  const bodyBlock = e.body ? `<h3 class="sec">Request body</h3>${codeBlock(e.body)}` : "";
+
+  const responses = (e.responses || []).map((r, ri) => `
+    <details class="resp" ${ri === 0 ? "open" : ""}>
+      <summary><span class="status ${statusClass(r.status)}">${esc(r.status)}</span>
+        <strong>${esc(r.label || "")}</strong>
+        <span class="muted">${esc(r.desc || "")}</span>
+      </summary>
+      <div class="body">${r.json ? codeBlock(r.json) : `<p class="desc muted">${e.returns ? "Sin ejemplo de respuesta; el tipo declarado está en «Devuelve»." : "Mismo schema que el listado."}</p>`}</div>
+    </details>`).join("");
+
+  const notes = (e.notes || []).map((n) => `<div class="note">${esc(n)}</div>`).join("");
+  const color = COLORS[e.groupIndex % COLORS.length];
+  const returnsLine = e.returns
+    ? `<p class="desc muted" style="margin-top:4px">Devuelve: <code>${esc(e.returns)}</code></p>`
+    : "";
+
+  $("#content").innerHTML = `
+    <div class="card">
+      <div class="head">
+        <span class="method m-${e.method}">${e.method}</span>
+        <code>${esc(e.path)}</code>
+        <span class="badge">${esc(accessLabel(e))}</span>
+      </div>
+      <div class="body">
+        <h2 style="font-size:18px;margin-bottom:4px">${esc(e.title)}</h2>
+        <p class="desc">${esc(e.desc)}</p>
+        ${returnsLine}
+        <div class="group-card" style="margin-top:6px">
+          <span class="dot" style="background:${color}"></span>
+          <span class="muted" style="font-size:12px">${esc(e.group)}</span>
+        </div>
+      </div>
+    </div>
+    ${paramsTable}
+    ${bodyBlock}
+    <h3 class="sec">Responses</h3>
+    ${responses}
+    ${notes ? `<h3 class="sec">Notas</h3>${notes}` : ""}
+    ${(e.errors || []).length ? `
+      <h3 class="sec">Errores posibles</h3>
+      <div class="card"><div class="body">
+        <div>${e.errors.map((x) => `<span class="pill">${esc(x)}</span>`).join("")}</div>
+        <p class="desc muted" style="margin-top:8px">El detalle de cada código está en <a href="#" id="go-overview">Resumen y convenciones</a>.</p>
+      </div></div>` : ""}
+  `;
+  bindCopy();
+  const go = document.getElementById("go-overview");
+  if (go) go.onclick = (ev) => { ev.preventDefault(); showOverview(null); };
+  $("#content").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------- tema ---------- */
+const themeBtn = document.getElementById("theme");
+const applyTheme = (dark) => {
+  document.documentElement.classList.toggle("dark", dark);
+  themeBtn.textContent = dark ? "Modo claro" : "Modo oscuro";
+  try { localStorage.setItem("api-doc-theme", dark ? "dark" : "light"); } catch (e) {}
+};
+let saved = null;
+try { saved = localStorage.getItem("api-doc-theme"); } catch (e) {}
+applyTheme(saved === "dark");
+themeBtn.onclick = () => applyTheme(!document.documentElement.classList.contains("dark"));
+
+/* ---------- init ---------- */
+document.title = DATA.meta.title;
+document.getElementById("doc-title").textContent = DATA.meta.title;
+document.getElementById("doc-base").textContent = DATA.meta.baseUrl;
+renderRoles();
+renderNav();
+document.getElementById("search").addEventListener("input", (ev) => {
+  state.q = ev.target.value;
+  renderRoles();
+  renderNav();
+});
+showOverview(null);
+</script>
+</body>
+</html>
