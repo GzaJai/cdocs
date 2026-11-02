@@ -1,0 +1,10 @@
+# Build output
+/cdocs
+/dist/
+
+# Local feature logbook
+/odd/
+
+# Test artifacts
+*.test
+coverage.out
