@@ -218,14 +218,12 @@ func generate(repo string, opts options, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "cdocs: %v\n", err)
 		return 1
 	}
-	if source.Path != "" {
-		note := ""
-		if source.InRepo {
-			note = " (deprecated: move it to " + curated.Path(repo) + ")"
-		} else if source.Legacy {
-			note = " (legacy name-based location)"
-		}
-		fmt.Fprintf(stderr, "cdocs: curated data from %s%s\n", source.Path, note)
+	if source.Path != "" && source.InRepo {
+		// A config file inside the repository is the one location that really
+		// is deprecated: it is the only case that couples the tool to a
+		// checkout. The name-based config path is a normal, supported fallback.
+		fmt.Fprintf(stderr, "cdocs: curated data from %s (deprecated: move it to %s)\n",
+			source.Path, curated.Path(repo))
 	}
 
 	data := compose.Compose(repo, result, file)
